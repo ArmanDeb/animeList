@@ -1,0 +1,80 @@
+﻿@page "/favorites"
+@using AnimeServices.Services
+@inject AnimeService AnimeService
+@inject Blazored.LocalStorage.ILocalStorageService _localStorage
+
+
+
+<html>
+    <head>
+        <link href="css/bootstrap/bootstrap.min.css" rel="stylesheet" />
+        <link href="css/MyStyle.css" rel="stylesheet" />
+    </head>
+<body>
+<h3>Favorites</h3>
+
+@if (favoriteAnimes == null)
+{
+    <p>Loading favorites...</p>
+}
+else if (favoriteAnimes.Count == 0)
+{
+    <p>No favorites added yet.</p>
+}
+else
+{
+    
+    foreach (var anime in favoriteAnimes)
+{
+    <li class="card">
+        <img src="@anime.Images.Jpg.Image_url" alt="@anime.Title" @onclick="() => ToggleSynopsis(anime)" />
+        <div class="card-content">
+            <h2>@anime.Title</h2>
+            @if (anime.ShowSynopsis)
+            {
+                <p>@anime.Synopsis</p>
+                <textarea @bind="@anime.PersonalNote" rows="3"></textarea>
+                <button @onclick="() => UpdatePersonalNoteAsync(anime)">Save Note</button>
+            }
+        </div>
+        <button class="remove-button" @onclick="() => ToggleFavorite(anime)">Remove from Favorites</button>
+    </li>
+}
+    
+}
+
+@code {
+    private List<AnimeData> favoriteAnimes;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var favoriteIds = await AnimeService.GetFavoritesAsync();
+        favoriteAnimes = await AnimeService.GetAnimesByIdsAsync(favoriteIds.ToList());
+        foreach (var anime in favoriteAnimes)
+    {
+        anime.PersonalNote = await _localStorage.GetItemAsync<string>($"PersonalNote_{anime.Mal_id}") ?? "";
+    }
+    }
+
+    private async Task ToggleFavorite(AnimeData anime)
+    {
+        await AnimeService.ToggleFavoriteAsync(anime.Mal_id);
+        favoriteAnimes.Remove(anime);
+    }
+
+     private void ToggleSynopsis(AnimeData anime)
+        {
+            anime.ShowSynopsis = !anime.ShowSynopsis;
+        }
+private async Task UpdatePersonalNoteAsync(AnimeData anime)
+{
+    // Save the updated personal note using your preferred storage mechanism
+    // For example, using localStorage:
+    await _localStorage.SetItemAsync($"PersonalNote_{anime.Mal_id}", anime.PersonalNote);
+}
+
+    
+}
+
+   </body>
+</html>

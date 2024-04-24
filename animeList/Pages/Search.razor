@@ -1,0 +1,80 @@
+﻿@page "/search"
+@using AnimeServices.Services
+@inject AnimeService AnimeService
+@inject NavigationManager NavigationManager
+
+
+<html>
+    <head>
+        <link href="css/bootstrap/bootstrap.min.css" rel="stylesheet" />
+        <link href="css/MyStyle.css" rel="stylesheet" />
+    </head>
+
+    <body>
+<h1>Anime Search</h1>
+<input type="text" @bind="searchQuery" placeholder="Search for anime..." />
+<button @onclick="PerformSearch">Search</button>
+<button @onclick="GoToFavorites">Favorites</button>
+
+
+@if (searchResults != null)
+{
+   <ul>
+    @foreach (var anime in searchResults)
+    {
+        <li class="card">
+        <img src="@anime.Images.Jpg.Image_url" alt="@anime.Title" @onclick="() => ToggleSynopsis(anime)" />
+        <div class="card-content">
+            <h2>@anime.Title <button @onclick="() => ToggleFavorite(anime)" class="heart-btn">@((favoriteIds.Contains(anime.Mal_id) ? "♥" : "♡"))</button></h2>
+            @if (anime.ShowSynopsis)
+            {
+                <p>@anime.Synopsis</p>
+            }
+        </div>
+    </li>
+    }
+</ul>
+
+}
+else
+{
+    <p>Enter a search term to find anime.</p>
+}
+
+@code {
+    private string searchQuery;
+    private List<AnimeData> searchResults;
+    private HashSet<int> favoriteIds;
+
+    protected override async Task OnInitializedAsync()
+    {
+        favoriteIds = await AnimeService.GetFavoritesAsync();
+    }
+
+    private async Task PerformSearch()
+    {
+        searchResults = await AnimeService.SearchAnimeAsync(searchQuery);
+    }
+
+    private async Task ToggleFavorite(AnimeData anime)
+    {
+        await AnimeService.ToggleFavoriteAsync(anime.Mal_id);
+        if (favoriteIds.Contains(anime.Mal_id))
+        {
+            favoriteIds.Remove(anime.Mal_id);
+        }
+        else
+        {
+            favoriteIds.Add(anime.Mal_id);
+        }
+        // This call is necessary to refresh the UI after the change.
+        StateHasChanged();
+    }
+        private void GoToFavorites() => NavigationManager.NavigateTo("/favorites");
+        private void ToggleSynopsis(AnimeData anime)
+        {
+            anime.ShowSynopsis = !anime.ShowSynopsis;
+        }
+}
+    </body>
+</html>

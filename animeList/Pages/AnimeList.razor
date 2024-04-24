@@ -1,0 +1,80 @@
+﻿@page "/"
+@using AnimeServices.Services
+@inject AnimeService AnimeService
+@inject NavigationManager NavigationManager
+
+<html>
+    <head>
+        <link href="css/bootstrap/bootstrap.min.css" rel="stylesheet" />
+        <link href="css/MyStyle.css" rel="stylesheet" />
+    </head>
+
+    <body>
+         <h1>Top Anime List</h1>
+    <button @onclick="GoToSearch">Search Anime</button>
+    <button @onclick="GoToFavorites">Favorites</button>
+
+    @if (animeList == null)
+    {
+        <p>Loading...</p>
+    }
+    else
+    {
+        <ul>
+           @foreach (var anime in animeList.Take(100))
+{
+    <li class="card">
+        <img src="@anime.Images.Jpg.Image_url" alt="@anime.Title" @onclick="() => ToggleSynopsis(anime)" />
+        <div class="card-content">
+            <h2>@anime.Title <button @onclick="() => ToggleFavorite(anime)" class="heart-btn">@((favoriteIds.Contains(anime.Mal_id) ? "♥" : "♡"))</button></h2>
+            @if (anime.ShowSynopsis)
+            {
+                <p>@anime.Synopsis</p>
+            }
+        </div>
+    </li>
+}
+
+
+        </ul>
+
+    }
+
+    @code {
+        private List<AnimeData> animeList;
+        private HashSet<int> favoriteIds;
+
+        protected override async Task OnInitializedAsync()
+        {
+            animeList = await AnimeService.GetAnimeListAsync();
+            favoriteIds = await AnimeService.GetFavoritesAsync();
+        }
+
+        private async Task ToggleFavorite(AnimeData anime)
+        {
+            await AnimeService.ToggleFavoriteAsync(anime.Mal_id);
+            if (favoriteIds.Contains(anime.Mal_id))
+            {
+                favoriteIds.Remove(anime.Mal_id);
+            }
+            else
+            {
+                favoriteIds.Add(anime.Mal_id);
+            }
+            StateHasChanged(); // Refresh the UI to reflect the change
+        }
+
+        private void GoToSearch() => NavigationManager.NavigateTo("/search");
+        private void GoToFavorites() => NavigationManager.NavigateTo("/favorites");
+
+        private void ToggleSynopsis(AnimeData anime)
+        {
+            anime.ShowSynopsis = !anime.ShowSynopsis;
+        }
+
+    }
+
+    
+
+    </body>
+</html>
